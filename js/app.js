@@ -214,12 +214,12 @@ async function updateStorageCounts() {
   }
 }
 
-// Register Service Worker for offline support
+// Unregister Service Workers to forcefully clear aggressive local caching
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js').catch(() => {
-      // SW registration failed, app still works
-    });
+  navigator.serviceWorker.getRegistrations().then(function(registrations) {
+    for(let registration of registrations) {
+      registration.unregister();
+    }
   });
 }
 
