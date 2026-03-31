@@ -57,14 +57,36 @@ export async function generateResponse(messages, onToken) {
   }
 
   const payload = { contents };
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:streamGenerateContent?key=${apiKey}&alt=sse`;
+  let url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:streamGenerateContent?key=${apiKey}&alt=sse`;
 
   try {
-    const response = await fetch(url, {
+    let response = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     });
+
+    // Auto-discover models if 404 Not Found (Regional/GCP restrictions)
+    if (response.status === 404) {
+      console.warn('gemini-pro not found, querying ListModels API...');
+      const listReq = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
+      if (listReq.ok) {
+        const listData = await listReq.json();
+        const fallback = listData.models.find(m => m.supportedGenerationMethods?.includes('generateContent') && m.name.includes('gemini'));
+        
+        if (fallback) {
+          const fallbackName = fallback.name.split('/')[1]; // Strip "models/"
+          console.log('Auto-fallback to: ' + fallbackName);
+          url = `https://generativelanguage.googleapis.com/v1beta/models/${fallbackName}:streamGenerateContent?key=${apiKey}&alt=sse`;
+          
+          response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+        }
+      }
+    }
 
     if (!response.ok) {
         const error = await response.json();
