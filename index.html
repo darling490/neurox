@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#0a0a0f" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="description" content="NeuroX — Your offline AI assistant with chat, code, image creation, and productivity tools. Runs on your device." />
+  <title>NeuroX — AI Assistant</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><defs><linearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'><stop offset='0%25' stop-color='%237c3aed'/><stop offset='100%25' stop-color='%2306b6d4'/></linearGradient></defs><circle cx='50' cy='50' r='45' fill='url(%23g)'/><text x='50' y='68' font-size='50' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='bold'>N</text></svg>" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="app">
+    <!-- Splash Screen -->
+    <div id="splash-screen" class="splash-screen">
+      <div class="splash-content">
+        <div class="splash-logo">
+          <div class="splash-orb">
+            <div class="orb-ring ring1"></div>
+            <div class="orb-ring ring2"></div>
+            <div class="orb-ring ring3"></div>
+            <div class="orb-core"></div>
+          </div>
+        </div>
+        <h1 class="splash-title">Neuro<span class="gradient-text">X</span></h1>
+        <p class="splash-subtitle">AI Assistant — v2.0</p>
+        <div class="splash-loader">
+          <div class="loader-bar"><div class="loader-fill" id="splash-progress"></div></div>
+          <p class="loader-text" id="splash-status">Initializing app...</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- PWA Install Banner -->
+    <div class="install-banner hidden" id="install-banner">
+      <div class="install-banner-content">
+        <span>📲 Install NeuroX for a native app experience</span>
+        <div class="install-banner-btns">
+          <button class="install-btn" id="btn-install">Install</button>
+          <button class="install-dismiss" id="btn-install-dismiss">✕</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Conversation History Drawer -->
+    <div class="drawer-overlay" id="drawer-overlay"></div>
+    <aside class="conversation-drawer" id="conversation-drawer">
+      <div class="drawer-header">
+        <h3>💬 Chat History</h3>
+        <button class="icon-btn" id="btn-close-drawer" title="Close">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div class="drawer-search">
+        <input type="text" id="conv-search" placeholder="Search conversations..." autocomplete="off" />
+      </div>
+      <div class="drawer-list" id="conv-list"></div>
+    </aside>
+
+    <!-- Main App -->
+    <div id="main-app" class="main-app hidden">
+      <!-- Header -->
+      <header class="app-header" id="app-header">
+        <div class="header-left">
+          <button class="icon-btn" id="btn-history" title="Chat history">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="10"/></svg>
+          </button>
+          <h2 class="header-title" id="header-title">
+            <span class="header-icon" id="header-icon">💬</span>
+            Chat
+          </h2>
+        </div>
+        <div class="header-right">
+          <!-- Mode Selector -->
+          <div class="mode-selector" id="mode-selector">
+            <button class="mode-btn active" data-mode="general" title="General">💬</button>
+            <button class="mode-btn" data-mode="tutor" title="Tutor">🎓</button>
+            <button class="mode-btn" data-mode="writer" title="Writer">✍️</button>
+            <button class="mode-btn" data-mode="translator" title="Translator">🌐</button>
+          </div>
+          <div class="status-pill" id="ai-status-pill">
+            <span class="status-dot"></span>
+            <span class="status-text" id="ai-status-text">AI Ready</span>
+          </div>
+          <button class="icon-btn" id="btn-new-chat" title="New conversation">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+          </button>
+        </div>
+      </header>
+
+      <!-- Tab Panels -->
+      <main class="tab-panels">
+        <!-- ==================== CHAT PANEL ==================== -->
+        <section class="tab-panel active" id="panel-chat">
+          <div class="chat-container" id="chat-messages">
+            <div class="welcome-card" id="welcome-card">
+              <div class="welcome-orb-mini"><div class="orb-core"></div></div>
+              <h2>Hello! I'm <span class="gradient-text">NeuroX</span></h2>
+              <p>Your AI assistant — chat, create, and get things done, right on your device.</p>
+              <div class="mode-hint" id="mode-hint">
+                <span class="mode-hint-icon">💬</span>
+                <span>General Mode — Ask me anything</span>
+              </div>
+              <div class="quick-actions">
+                <button class="quick-action-btn" data-prompt="Explain quantum computing in simple terms">
+                  <span class="qa-icon">🧠</span><span>Explain a concept</span>
+                </button>
+                <button class="quick-action-btn" data-prompt="Write a Python function to sort a list using merge sort with detailed comments">
+                  <span class="qa-icon">💻</span><span>Write some code</span>
+                </button>
+                <button class="quick-action-btn" data-prompt="Give me 5 creative project ideas for a weekend hackathon">
+                  <span class="qa-icon">💡</span><span>Brainstorm ideas</span>
+                </button>
+                <button class="quick-action-btn" data-prompt="What are the best practices for learning a new programming language quickly?">
+                  <span class="qa-icon">📚</span><span>Learning tips</span>
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="chat-input-area">
+            <div class="input-wrapper">
+              <button class="voice-btn" id="btn-voice" title="Voice input">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+              </button>
+              <textarea id="chat-input" placeholder="Ask me anything..." rows="1" autocomplete="off"></textarea>
+              <button class="send-btn" id="btn-send" title="Send message" disabled>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 2L11 13"/><path d="M22 2L15 22L11 13L2 9L22 2Z"/></svg>
+              </button>
+            </div>
+            <p class="input-hint">🔒 Everything runs locally · <span id="current-mode-label">General</span> mode</p>
+          </div>
+        </section>
+
+        <!-- ==================== CODE PANEL ==================== -->
+        <section class="tab-panel" id="panel-code">
+          <div class="chat-container" id="code-messages">
+            <div class="welcome-card">
+              <div class="welcome-orb-mini code-orb"><div class="orb-core"></div></div>
+              <h2>Code <span class="gradient-text">Assistant</span></h2>
+              <p>Generate, debug, and explain code in any language — fully offline.</p>
+              <div class="quick-actions">
+                <button class="quick-action-btn code-action" data-prompt="Write a REST API in Node.js with Express for a todo list with CRUD operations">
+                  <span class="qa-icon">🚀</span><span>Generate API</span>
+                </button>
+                <button class="quick-action-btn code-action" data-prompt="Explain how async/await works in JavaScript with clear examples">
+                  <span class="qa-icon">📖</span><span>Explain concept</span>
+                </button>
+                <button class="quick-action-btn code-action" data-prompt="Write a Python script to read CSV and create charts with matplotlib">
+                  <span class="qa-icon">🐍</span><span>Python script</span>
+                </button>
+                <button class="quick-action-btn code-action" data-prompt="Create an HTML page with modern CSS animations for a loading spinner">
+                  <span class="qa-icon">🎨</span><span>HTML / CSS</span>
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="chat-input-area">
+            <div class="input-wrapper">
+              <textarea id="code-input" placeholder="Describe what code you need..." rows="1" autocomplete="off"></textarea>
+              <button class="send-btn" id="btn-send-code" title="Send" disabled>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 2L11 13"/><path d="M22 2L15 22L11 13L2 9L22 2Z"/></svg>
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================== IMAGE PANEL ==================== -->
+        <section class="tab-panel" id="panel-image">
+          <div class="image-creator">
+            <div class="creator-header">
+              <h3>Image <span class="gradient-text">Creator</span></h3>
+              <p>Generate art, patterns, and compositions — 100% offline</p>
+            </div>
+            <div class="canvas-wrapper">
+              <canvas id="image-canvas" width="512" height="512"></canvas>
+            </div>
+            <div class="creator-controls">
+              <div class="style-selector" id="style-selector">
+                <button class="style-btn active" data-style="nebula">🌌 Nebula</button>
+                <button class="style-btn" data-style="geometric">🔷 Geometric</button>
+                <button class="style-btn" data-style="landscape">🏔️ Landscape</button>
+                <button class="style-btn" data-style="abstract">🎨 Abstract</button>
+                <button class="style-btn" data-style="fractal">🌀 Fractal</button>
+                <button class="style-btn" data-style="waves">🌊 Waves</button>
+              </div>
+              <div class="color-palette" id="color-palette">
+                <div class="color-options">
+                  <button class="color-swatch active" data-colors="#7c3aed,#06b6d4,#0a0a2e" style="background: linear-gradient(135deg, #7c3aed, #06b6d4)"></button>
+                  <button class="color-swatch" data-colors="#f43f5e,#f97316,#1a0505" style="background: linear-gradient(135deg, #f43f5e, #f97316)"></button>
+                  <button class="color-swatch" data-colors="#10b981,#3b82f6,#051a0a" style="background: linear-gradient(135deg, #10b981, #3b82f6)"></button>
+                  <button class="color-swatch" data-colors="#f59e0b,#ec4899,#1a1a05" style="background: linear-gradient(135deg, #f59e0b, #ec4899)"></button>
+                  <button class="color-swatch" data-colors="#8b5cf6,#f43f5e,#0a051a" style="background: linear-gradient(135deg, #8b5cf6, #f43f5e)"></button>
+                </div>
+              </div>
+              <div class="image-actions">
+                <button class="action-btn primary" id="btn-generate-image">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                  Generate
+                </button>
+                <button class="action-btn secondary" id="btn-randomize-image">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>
+                  Random
+                </button>
+                <button class="action-btn secondary" id="btn-save-image">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                  Save
+                </button>
+              </div>
+            </div>
+            <div class="gallery-section" id="image-gallery">
+              <h4>Saved Images</h4>
+              <div class="gallery-grid" id="gallery-grid"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================== TOOLS PANEL ==================== -->
+        <section class="tab-panel" id="panel-tools">
+          <div class="tools-container">
+            <!-- Tool Tabs -->
+            <div class="tool-tabs">
+              <button class="tool-tab-btn active" data-tool="calculator">🧮 Calc</button>
+              <button class="tool-tab-btn" data-tool="notes">📝 Notes</button>
+              <button class="tool-tab-btn" data-tool="timer">⏱️ Timer</button>
+              <button class="tool-tab-btn" data-tool="converter">📏 Convert</button>
+            </div>
+
+            <!-- Calculator -->
+            <div class="tool-content active" id="tool-calculator">
+              <div class="calc-screen">
+                <div class="calc-display" id="calc-display">0</div>
+              </div>
+              <div class="calc-grid" id="calc-grid">
+                <button class="calc-btn fn" data-val="sin(">sin</button>
+                <button class="calc-btn fn" data-val="cos(">cos</button>
+                <button class="calc-btn fn" data-val="tan(">tan</button>
+                <button class="calc-btn fn" data-val="DEL">⌫</button>
+
+                <button class="calc-btn fn" data-val="log(">log</button>
+                <button class="calc-btn fn" data-val="ln(">ln</button>
+                <button class="calc-btn fn" data-val="√(">√</button>
+                <button class="calc-btn fn" data-val="^">^</button>
+
+                <button class="calc-btn fn" data-val="(">(</button>
+                <button class="calc-btn fn" data-val=")">)</button>
+                <button class="calc-btn fn" data-val="π">π</button>
+                <button class="calc-btn op" data-val="÷">÷</button>
+
+                <button class="calc-btn num" data-val="7">7</button>
+                <button class="calc-btn num" data-val="8">8</button>
+                <button class="calc-btn num" data-val="9">9</button>
+                <button class="calc-btn op" data-val="×">×</button>
+
+                <button class="calc-btn num" data-val="4">4</button>
+                <button class="calc-btn num" data-val="5">5</button>
+                <button class="calc-btn num" data-val="6">6</button>
+                <button class="calc-btn op" data-val="-">−</button>
+
+                <button class="calc-btn num" data-val="1">1</button>
+                <button class="calc-btn num" data-val="2">2</button>
+                <button class="calc-btn num" data-val="3">3</button>
+                <button class="calc-btn op" data-val="+">+</button>
+
+                <button class="calc-btn clear" data-val="C">C</button>
+                <button class="calc-btn num" data-val="0">0</button>
+                <button class="calc-btn num" data-val=".">.</button>
+                <button class="calc-btn equals" data-val="=">=</button>
+              </div>
+              <div class="calc-history-section" id="calc-history"></div>
+            </div>
+
+            <!-- Notes -->
+            <div class="tool-content" id="tool-notes">
+              <div id="notes-list-view">
+                <div class="notes-header">
+                  <h3>My Notes</h3>
+                  <button class="action-btn primary small-btn" id="btn-new-note">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+                    New
+                  </button>
+                </div>
+                <div class="notes-grid" id="notes-grid"></div>
+              </div>
+              <div id="note-editor" class="note-editor-panel">
+                <div class="note-editor-header">
+                  <button class="icon-btn" id="btn-back-notes" title="Back">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                  </button>
+                  <span class="note-editor-title">Edit Note</span>
+                </div>
+                <input type="text" id="note-title" placeholder="Note title..." class="note-title-input" />
+                <textarea id="note-content" placeholder="Start typing..." class="note-content-input"></textarea>
+              </div>
+            </div>
+
+            <!-- Timer / Stopwatch -->
+            <div class="tool-content" id="tool-timer">
+              <div class="timer-tabs-wrapper">
+                <button class="timer-tab active" data-target="timer">Timer</button>
+                <button class="timer-tab" data-target="stopwatch">Stopwatch</button>
+              </div>
+
+              <div id="timer-panel">
+                <div class="timer-display-wrapper">
+                  <div class="timer-display" id="timer-display">00:00</div>
+                </div>
+                <div class="quick-timers">
+                  <button class="quick-timer-btn" data-mins="1">1m</button>
+                  <button class="quick-timer-btn" data-mins="3">3m</button>
+                  <button class="quick-timer-btn" data-mins="5">5m</button>
+                  <button class="quick-timer-btn" data-mins="10">10m</button>
+                  <button class="quick-timer-btn" data-mins="15">15m</button>
+                  <button class="quick-timer-btn" data-mins="25">25m</button>
+                  <button class="quick-timer-btn" data-mins="60">1h</button>
+                </div>
+                <div class="timer-controls">
+                  <button class="action-btn primary" id="btn-timer-start">▶ Start</button>
+                  <button class="action-btn secondary" id="btn-timer-reset">↺ Reset</button>
+                </div>
+              </div>
+
+              <div id="stopwatch-panel" style="display:none">
+                <div class="timer-display-wrapper">
+                  <div class="timer-display stopwatch-display" id="stopwatch-display">00:00.00</div>
+                </div>
+                <div class="timer-controls">
+                  <button class="action-btn primary" id="btn-sw-start">▶ Start</button>
+                  <button class="action-btn secondary" id="btn-sw-reset">↺ Reset</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Unit Converter -->
+            <div class="tool-content" id="tool-converter">
+              <div class="converter-card">
+                <div class="converter-category">
+                  <label>Category</label>
+                  <select id="convert-category">
+                    <option value="length">📏 Length</option>
+                    <option value="weight">⚖️ Weight</option>
+                    <option value="temperature">🌡️ Temperature</option>
+                    <option value="speed">🏎️ Speed</option>
+                  </select>
+                </div>
+                <div class="converter-row">
+                  <div class="converter-input-group">
+                    <label>From</label>
+                    <input type="number" id="convert-from-val" value="1" step="any" />
+                    <select id="convert-from-unit"></select>
+                  </div>
+                  <button class="swap-btn" id="btn-convert-swap" title="Swap">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 16V4M7 4L3 8M7 4l4 4M17 8v12M17 20l4-4M17 20l-4-4"/></svg>
+                  </button>
+                  <div class="converter-input-group">
+                    <label>To</label>
+                    <input type="number" id="convert-to-val" readonly />
+                    <select id="convert-to-unit"></select>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================== SETTINGS PANEL ==================== -->
+        <section class="tab-panel" id="panel-settings">
+          <div class="settings-container">
+            <div class="settings-header">
+              <div class="welcome-orb-mini"><div class="orb-core"></div></div>
+              <h2>Neuro<span class="gradient-text">X</span></h2>
+              <p class="version-text">v2.0.0 — AI Assistant</p>
+            </div>
+
+            <div class="settings-section">
+              <h3 class="section-title">🤖 AI Model</h3>
+              <div class="setting-card">
+                <div class="model-status" id="model-status">
+                  <div class="status-dot-lg" id="status-dot-lg"></div>
+                  <div>
+                    <span class="status-label" id="model-status-label">No model loaded</span>
+                    <span class="status-detail" id="model-status-detail">Load a model to start chatting</span>
+                  </div>
+                </div>
+                <div class="model-selector">
+                  <label>Select Model</label>
+                  <select id="model-select">
+                    <option value="SmolLM2-360M-Instruct-q4f16_1-MLC">SmolLM2 360M — Fastest (~200MB)</option>
+                    <option value="Llama-3.2-1B-Instruct-q4f16_1-MLC">Llama 3.2 1B — Good (~700MB)</option>
+                    <option value="Qwen2.5-1.5B-Instruct-q4f16_1-MLC">Qwen 2.5 1.5B — Smart (~1GB)</option>
+                    <option value="gemma-2-2b-it-q4f16_1-MLC">Gemma 2 2B — Quality (~1.5GB)</option>
+                    <option value="Phi-3.5-mini-instruct-q4f16_1-MLC">Phi 3.5 Mini — Balanced (~2GB)</option>
+                  </select>
+                  <button class="action-btn primary full-width" id="btn-load-model">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                    Download &amp; Load Model
+                  </button>
+                </div>
+                <div class="model-progress hidden" id="model-progress">
+                  <div class="progress-bar"><div class="progress-fill" id="model-progress-fill"></div></div>
+                  <p class="progress-text" id="model-progress-text">Downloading model...</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="settings-section">
+              <h3 class="section-title">💾 Storage</h3>
+              <div class="setting-card">
+                <div class="storage-info">
+                  <div class="storage-item"><span>Chat History</span><span id="chat-storage-size">0 conversations</span></div>
+                  <div class="storage-item"><span>Saved Images</span><span id="image-storage-size">0 images</span></div>
+                </div>
+                <div class="danger-zone">
+                  <button class="action-btn danger" id="btn-clear-chats">🗑️ Clear Chat History</button>
+                  <button class="action-btn danger" id="btn-clear-images">🗑️ Clear Saved Images</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="settings-section">
+              <h3 class="section-title">ℹ️ About</h3>
+              <div class="setting-card about-card">
+                <p>NeuroX runs AI models directly in your browser using WebGPU. All computations happen on your device — no data is ever sent to external servers.</p>
+                <div class="tech-badges">
+                  <span class="tech-badge">WebGPU</span>
+                  <span class="tech-badge">WebLLM</span>
+                  <span class="tech-badge">PWA</span>
+                  <span class="tech-badge">IndexedDB</span>
+                  <span class="tech-badge">Canvas</span>
+                  <span class="tech-badge">Voice</span>
+                  <span class="tech-badge">Offline</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <!-- Bottom Nav -->
+      <nav class="bottom-nav" id="bottom-nav">
+        <button class="nav-item active" data-tab="chat">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+          <span>Chat</span>
+        </button>
+        <button class="nav-item" data-tab="code">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+          <span>Code</span>
+        </button>
+        <button class="nav-item" data-tab="image">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+          <span>Create</span>
+        </button>
+        <button class="nav-item" data-tab="tools">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+          <span>Tools</span>
+        </button>
+        <button class="nav-item" data-tab="settings">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+          <span>Settings</span>
+        </button>
+        <div class="nav-indicator"></div>
+      </nav>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toast-container"></div>
+  </div>
+
+  <!-- Load WebLLM from CDN -->
+  <script type="importmap">
+  {
+    "imports": {
+      "@mlc-ai/web-llm": "https://esm.run/@mlc-ai/web-llm"
+    }
+  }
+  </script>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
