@@ -37,26 +37,27 @@ export async function generateResponse(messages, onToken) {
   }
 
   // Format messages for Gemini API
-  let systemInstruction = null;
   const contents = [];
+  let systemText = '';
 
   for (const msg of messages) {
     if (msg.role === 'system') {
-      systemInstruction = { parts: [{ text: msg.content }] };
+      systemText += msg.content + '\n\n';
     } else {
+      let text = msg.content;
+      if (systemText && (msg.role === 'user' || msg.role === 'user')) {
+        text = systemText + text;
+        systemText = ''; // prepend to first message only
+      }
       contents.push({
         role: msg.role === 'assistant' ? 'model' : 'user',
-        parts: [{ text: msg.content }]
+        parts: [{ text: text }]
       });
     }
   }
 
   const payload = { contents };
-  if (systemInstruction) {
-    payload.systemInstruction = systemInstruction;
-  }
-
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:streamGenerateContent?key=${apiKey}&alt=sse`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:streamGenerateContent?key=${apiKey}&alt=sse`;
 
   try {
     const response = await fetch(url, {
