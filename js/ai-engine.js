@@ -56,7 +56,7 @@ export async function generateResponse(messages, onToken) {
     payload.systemInstruction = systemInstruction;
   }
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:streamGenerateContent?key=${apiKey}&alt=sse`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:streamGenerateContent?key=${apiKey}&alt=sse`;
 
   try {
     const response = await fetch(url, {

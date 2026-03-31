@@ -2,7 +2,7 @@
 // NeuroX v2.0 Service Worker — Offline caching
 // ============================================================
 
-const CACHE_NAME = 'neurox-cache-v3';
+const CACHE_NAME = 'neurox-cache-v4';
 const ASSETS = [
   './',
   './index.html',
