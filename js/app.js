@@ -3,7 +3,7 @@
 // ============================================================
 
 import { initStorage, clearConversations, clearImages, getConversationCount, getImageCount, setSetting, getSetting } from './storage.js';
-import { loadModel, setCallbacks, getStatus } from './ai-engine.js';
+import { checkApiKey, setCallbacks, getStatus } from './ai-engine.js';
 import { initChat, initCodeChat, loadConversation } from './chat.js';
 import { initImageCreator, loadGallery } from './image-creator.js';
 import { initNavigation, showToast, updateAIStatus, hideSplash, updateSplashProgress } from './ui.js';
@@ -52,14 +52,13 @@ async function init() {
   // Set up AI engine callbacks
   setCallbacks({
     onReady: (modelId) => {
-      updateAIStatus('ready', modelId.split('-').slice(0, 2).join(' '));
-      showToast('AI model loaded and ready! 🚀', 'success');
+      updateAIStatus('ready', modelId);
       document.getElementById('btn-send').disabled = false;
       document.getElementById('btn-send-code').disabled = false;
     },
     onError: (msg) => {
       updateAIStatus('error', 'Error');
-      showToast('Model error: ' + msg, 'error');
+      showToast('API error: ' + msg, 'error');
     },
   });
 
@@ -75,24 +74,21 @@ async function init() {
   // Update storage counts
   updateStorageCounts();
 
-  // Check if we have a saved model preference
-  const savedModel = await getSetting('lastModel');
-
-  // Show app
+  // Check API key
   setTimeout(() => {
     updateSplashProgress(100, 'Ready!');
     setTimeout(() => {
       hideSplash();
-      if (!savedModel) {
-        showToast('Go to Settings to load an AI model', 'info');
-      }
+      checkApiKey().then(isReady => {
+        if (!isReady) {
+          updateAIStatus('error', 'API Key Required');
+          showToast('Go to Settings to configure your Gemini API key', 'info');
+        } else {
+          showToast('Gemini API configured and ready! 🚀', 'success');
+        }
+      });
     }, 400);
   }, 300);
-
-  // Auto-load last model if available
-  if (savedModel) {
-    setTimeout(() => autoLoadModel(savedModel), 1000);
-  }
 
   // PWA install prompt
   setupInstallPrompt();
@@ -163,51 +159,26 @@ function setupInstallPrompt() {
   });
 }
 
-async function autoLoadModel(modelId) {
-  updateAIStatus('loading', 'Loading...');
-  const progressEl = document.getElementById('model-progress');
-  const fillEl = document.getElementById('model-progress-fill');
-  const textEl = document.getElementById('model-progress-text');
-  if (progressEl) progressEl.classList.remove('hidden');
-
-  try {
-    await loadModel(modelId, ({ progress, text }) => {
-      const pct = Math.round(progress * 100);
-      if (fillEl) fillEl.style.width = pct + '%';
-      if (textEl) textEl.textContent = text;
-    });
-    if (progressEl) progressEl.classList.add('hidden');
-  } catch (err) {
-    if (progressEl) progressEl.classList.add('hidden');
-    updateAIStatus('error', 'Failed');
-  }
-}
-
 function initSettings() {
-  // Load model button
-  document.getElementById('btn-load-model').addEventListener('click', async () => {
-    const select = document.getElementById('model-select');
-    const modelId = select.value;
+  const saveBtn = document.getElementById('btn-save-key');
+  const inputEl = document.getElementById('api-key-input');
 
-    updateAIStatus('loading', 'Downloading...');
-    const progressEl = document.getElementById('model-progress');
-    const fillEl = document.getElementById('model-progress-fill');
-    const textEl = document.getElementById('model-progress-text');
-    progressEl.classList.remove('hidden');
-    fillEl.style.width = '0%';
+  // Try to load existing
+  getSetting('gemini_api_key').then(key => {
+    if (key) inputEl.value = '********';
+  });
 
-    try {
-      await loadModel(modelId, ({ progress, text }) => {
-        const pct = Math.round(progress * 100);
-        fillEl.style.width = pct + '%';
-        textEl.textContent = text;
-      });
-      progressEl.classList.add('hidden');
-      await setSetting('lastModel', modelId);
-    } catch (err) {
-      progressEl.classList.add('hidden');
-      updateAIStatus('error', 'Failed to load');
-      showToast('Failed to load model: ' + err.message, 'error');
+  saveBtn.addEventListener('click', async () => {
+    const key = inputEl.value.trim();
+    if (!key) return;
+    
+    if (key !== '********') {
+      await setSetting('gemini_api_key', key);
+    }
+    
+    const isReady = await checkApiKey();
+    if (isReady) {
+      showToast('API Key saved successfully!', 'success');
     }
   });
 

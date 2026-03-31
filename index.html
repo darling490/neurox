@@ -378,32 +378,22 @@
             </div>
 
             <div class="settings-section">
-              <h3 class="section-title">🤖 AI Model</h3>
+              <h3 class="section-title">☁️ Gemini API Setup</h3>
               <div class="setting-card">
                 <div class="model-status" id="model-status">
                   <div class="status-dot-lg" id="status-dot-lg"></div>
                   <div>
-                    <span class="status-label" id="model-status-label">No model loaded</span>
-                    <span class="status-detail" id="model-status-detail">Load a model to start chatting</span>
+                    <span class="status-label" id="model-status-label">API Key Missing</span>
+                    <span class="status-detail" id="model-status-detail">Enter your key to enable the AI engine</span>
                   </div>
                 </div>
                 <div class="model-selector">
-                  <label>Select Model</label>
-                  <select id="model-select">
-                    <option value="SmolLM2-360M-Instruct-q4f16_1-MLC">SmolLM2 360M — Fastest (~200MB)</option>
-                    <option value="Llama-3.2-1B-Instruct-q4f16_1-MLC">Llama 3.2 1B — Good (~700MB)</option>
-                    <option value="Qwen2.5-1.5B-Instruct-q4f16_1-MLC">Qwen 2.5 1.5B — Smart (~1GB)</option>
-                    <option value="gemma-2-2b-it-q4f16_1-MLC">Gemma 2 2B — Quality (~1.5GB)</option>
-                    <option value="Phi-3.5-mini-instruct-q4f16_1-MLC">Phi 3.5 Mini — Balanced (~2GB)</option>
-                  </select>
-                  <button class="action-btn primary full-width" id="btn-load-model">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                    Download &amp; Load Model
+                  <label>Google Gemini API Key</label>
+                  <input type="password" id="api-key-input" placeholder="AIzaSy..." class="note-title-input" />
+                  <button class="action-btn primary full-width" id="btn-save-key" style="margin-top: 10px;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                    Save API Key
                   </button>
-                </div>
-                <div class="model-progress hidden" id="model-progress">
-                  <div class="progress-bar"><div class="progress-fill" id="model-progress-fill"></div></div>
-                  <p class="progress-text" id="model-progress-text">Downloading model...</p>
                 </div>
               </div>
             </div>

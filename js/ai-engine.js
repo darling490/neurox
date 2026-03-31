@@ -1,11 +1,10 @@
 // ============================================================
-// AI Engine — WebLLM integration with graceful fallback
+// AI Engine — Gemini API integration (Cloud-based fallback)
 // ============================================================
 
-let engine = null;
-let isLoading = false;
+import { getSetting } from './storage.js';
+
 let isReady = false;
-let currentModel = null;
 
 const callbacks = {
   onProgress: null,
@@ -18,71 +17,86 @@ export function setCallbacks(cbs) {
 }
 
 export function getStatus() {
-  return { isLoading, isReady, currentModel };
+  return { isLoading: false, isReady, currentModel: 'Gemini 1.5 Flash' };
 }
 
-export async function loadModel(modelId, progressCallback) {
-  if (isLoading) return;
-  isLoading = true;
-  isReady = false;
-
-  try {
-    // Dynamically import WebLLM from CDN
-    const webllm = await import('@mlc-ai/web-llm');
-
-    // Check WebGPU support
-    if (!navigator.gpu) {
-      throw new Error('WebGPU is not supported in this browser. Please use Chrome 113+ or Edge 113+.');
-    }
-
-    const progressCb = (report) => {
-      if (progressCallback) {
-        progressCallback({
-          progress: report.progress || 0,
-          text: report.text || 'Loading...',
-        });
-      }
-    };
-
-    // Create the MLCEngine
-    engine = await webllm.CreateMLCEngine(modelId, {
-      initProgressCallback: progressCb,
-    });
-
-    currentModel = modelId;
-    isReady = true;
-    isLoading = false;
-
-    if (callbacks.onReady) callbacks.onReady(modelId);
-    return true;
-  } catch (err) {
-    isLoading = false;
-    isReady = false;
-    console.error('Failed to load model:', err);
-    if (callbacks.onError) callbacks.onError(err.message);
-    throw err;
+// Check if API key is loaded
+export async function checkApiKey() {
+  const key = await getSetting('gemini_api_key');
+  isReady = !!key;
+  if (isReady && callbacks.onReady) {
+    callbacks.onReady('Gemini 1.5 Flash');
   }
+  return isReady;
 }
 
 export async function generateResponse(messages, onToken) {
-  if (!engine || !isReady) {
-    throw new Error('Model not loaded. Please load a model in Settings first.');
+  const apiKey = await getSetting('gemini_api_key');
+  if (!apiKey) {
+    throw new Error('API Key missing. Please set your Gemini API key in Settings.');
   }
 
+  // Format messages for Gemini API
+  let systemInstruction = null;
+  const contents = [];
+
+  for (const msg of messages) {
+    if (msg.role === 'system') {
+      systemInstruction = { parts: [{ text: msg.content }] };
+    } else {
+      contents.push({
+        role: msg.role === 'assistant' ? 'model' : 'user',
+        parts: [{ text: msg.content }]
+      });
+    }
+  }
+
+  const payload = { contents };
+  if (systemInstruction) {
+    payload.systemInstruction = systemInstruction;
+  }
+
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:streamGenerateContent?key=${apiKey}&alt=sse`;
+
   try {
-    const reply = await engine.chat.completions.create({
-      messages: messages,
-      temperature: 0.7,
-      max_tokens: 1024,
-      stream: true,
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
     });
 
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error?.message || 'Failed to fetch from Gemini API');
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder('utf-8');
     let fullResponse = '';
-    for await (const chunk of reply) {
-      const delta = chunk.choices[0]?.delta?.content || '';
-      if (delta) {
-        fullResponse += delta;
-        if (onToken) onToken(fullResponse);
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      const chunk = decoder.decode(value, { stream: true });
+      const lines = chunk.split('\n');
+      
+      for (const line of lines) {
+        if (line.startsWith('data: ')) {
+          const dataStr = line.replace('data: ', '').trim();
+          if (!dataStr || dataStr === '[DONE]') continue;
+          
+          try {
+            const data = JSON.parse(dataStr);
+            const textChunk = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+            if (textChunk) {
+              fullResponse += textChunk;
+              if (onToken) onToken(fullResponse);
+            }
+          } catch (e) {
+            console.error('Failed to parse stream chunk:', e);
+          }
+        }
       }
     }
 
@@ -105,15 +119,10 @@ export async function generateCodeResponse(prompt, onToken) {
 }
 
 export async function resetEngine() {
-  if (engine) {
-    try {
-      await engine.resetChat();
-    } catch (e) {
-      // ignore
-    }
-  }
+  // Not needed for stateless API
 }
 
 export function isModelReady() {
   return isReady;
 }
+
